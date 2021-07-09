@@ -1,3 +1,3 @@
-export function helloWorld(): void {
+export function setTrace(): void {
   console.log("works")
 }

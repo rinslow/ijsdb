@@ -1,8 +1,8 @@
-import { helloWorld } from './index';
+import { setTrace } from './index';
 
 describe('hello world', () => {
   it('should be working', () => {
-    helloWorld()
+    setTrace()
     expect(true).toBeTruthy()
   })
 });
