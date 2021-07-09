@@ -1,9 +1,8 @@
 import { BaseCommand } from './BaseCommand';
 import { DebuggerState } from '../debugger-state';
-import { ijsdbListCommandError } from '../errors/ijsdb-list-command-error';
+import { ijsdbRepeatCommandError } from '../errors/ijsdb-repeat-command-error';
 
 export class RepeatCommand implements BaseCommand {
-  private static ADVANCE_BY = 3;
   line: string;
 
   public constructor(line: string) {
@@ -14,8 +13,8 @@ export class RepeatCommand implements BaseCommand {
     const argv = this.line.split(" ");
     const argc = argv.length;
 
-    if (argc != 0) {
-      throw  new ijsdbListCommandError("Must have zero-length command.")
+    if (this.line.length != 0) {
+      throw  new ijsdbRepeatCommandError(`Must have zero-length command, got: ${argv.length}`);
     }
 
     DebuggerState.getLatestCommand().execute();

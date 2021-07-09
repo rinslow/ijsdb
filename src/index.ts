@@ -11,13 +11,22 @@ import { getFunctionParameters, evalInScope } from './util';
 import { ListCommand } from './commands/ListCommand';
 import { RepeatCommand } from './commands/RepeatCommand';
 import { BaseCommand } from './commands/BaseCommand';
+import { UpCommand } from './commands/UpCommand';
+import { DownCommand } from './commands/DownCommand';
+import { ArgsCommand } from './commands/ArgsCommand';
 
 const DEFAULT_CONTEXT = 1;
 
 const COMMANDS_HANDLER = {
+  '': RepeatCommand,
   'l': ListCommand,
   'list': ListCommand,
-  '': RepeatCommand,
+  'up': UpCommand,
+  'u': UpCommand,
+  'down': DownCommand,
+  'd': DownCommand,
+  'a': ArgsCommand,
+  'args': ArgsCommand,
 };
 
 /**
@@ -225,28 +234,6 @@ function linesOfCodeForCall(call: Call, contextBefore: number, contextAfter: num
   const lineToEndAt = currentLineToPeek + contextAfter;
   const fileContent = fs.readFileSync(call.file, {encoding:'utf8', flag:'r'});
   return fileContent.split(/\r?\n/).slice(lineToStartAt, lineToEndAt);
-}
-
-/**
- * print the call args
- * i added this method for debugging the debugger but it might be useful as a feature
- */
-function showCallArguments(call: Call): string {
-  const separator = "-".repeat(35);
-  const argumentsContent = call.arguments.map((argument) => {
-
-    let value;
-    try {
-      value = JSON.stringify(argument.value);
-    }
-    catch (TypeError) {
-      value = argument.value;
-    }
-
-    return `${argument.name}: ${value}`;
-  });
-
-  return [separator, "Variables:", ...argumentsContent, separator].join("\n");
 }
 
 /**
