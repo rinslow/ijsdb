@@ -1,5 +1,3 @@
-import * as fs from 'fs';
-
 import * as readline from 'readline';
 import * as chalk from 'chalk';
 
@@ -7,7 +5,7 @@ import { IjsdbNotImplementedError } from './errors/ijsdb-not-implemented-error';
 import { ijsdbInternalError } from './errors/ijsdb-internal-error';
 import { DebuggerState } from './debugger-state';
 import { Argument, Call, CallStack } from './general';
-import { getFunctionParameters, evalInScope } from './util';
+import { evalInScope, getFileContent, getFunctionParameters } from './util';
 import { ListCommand } from './commands/ListCommand';
 import { RepeatCommand } from './commands/RepeatCommand';
 import { BaseCommand } from './commands/BaseCommand';
@@ -232,7 +230,7 @@ function linesOfCodeForCall(call: Call, contextBefore: number, contextAfter: num
   const currentLineToPeek = DebuggerState.getCurrentLineInPeeking();
   const lineToStartAt = Math.max(currentLineToPeek - contextBefore - 1, 0);
   const lineToEndAt = currentLineToPeek + contextAfter;
-  const fileContent = fs.readFileSync(call.file, {encoding:'utf8', flag:'r'});
+  const fileContent = getFileContent(call.file);
   return fileContent.split(/\r?\n/).slice(lineToStartAt, lineToEndAt);
 }
 

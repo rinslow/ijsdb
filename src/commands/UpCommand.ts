@@ -1,6 +1,8 @@
 import { BaseCommand } from './BaseCommand';
 import { DebuggerState } from '../debugger-state';
 import { ijsdbUpCommandError } from '../errors/ijsdb-up-command-error';
+import { DownCommand } from './DownCommand';
+import { getFileContent } from '../util';
 
 export class UpCommand implements BaseCommand {
   line: string;
@@ -28,5 +30,13 @@ export class UpCommand implements BaseCommand {
     DebuggerState.setCurrentCallStackPointer(currentCallStackPointer + 1);
     DebuggerState.setCurrentLineInPeeking(DebuggerState.getCurrentCall().line);
     DebuggerState.setCurrentFileInPeeking(DebuggerState.getCurrentCall().file);
+
+    try {
+      const newFile = DebuggerState.getCurrentFileInPeeking();
+      getFileContent(newFile);
+    } catch (e) {
+      console.log("*** Oldest frame");
+      new DownCommand("").execute();
+    }
   }
 }

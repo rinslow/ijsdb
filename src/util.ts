@@ -1,4 +1,7 @@
 import * as esprima from 'esprima';
+import * as fs from 'fs';
+
+import { Call } from './general';
 
 /**
  * Extract parameter names from function
@@ -36,4 +39,11 @@ export function evalInScope(js: string, contextAsScope: object) {
   return function() { // @ts-ignore
     // eslint-disable-next-line no-with
     with(this) { return eval(js); }; }.call(contextAsScope);
+}
+
+/**
+ * Read the content of a file
+ */
+export function getFileContent(file: string) {
+  return fs.readFileSync(file, { encoding: 'utf8', flag: 'r' });
 }

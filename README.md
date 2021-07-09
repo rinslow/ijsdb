@@ -15,6 +15,8 @@
 require("ijsdb").setTrace();
 ```
 
+### Example
+[![asciicast](https://asciinema.org/a/C8ULUG6zdbaTfHhVHky2C4Kvy.svg)](https://asciinema.org/a/C8ULUG6zdbaTfHhVHky2C4Kvy?autoplay=1&loop=1)
 
 ## License
 
