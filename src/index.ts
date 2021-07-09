@@ -1,5 +1,6 @@
 import * as readline from 'readline';
 import * as chalk from 'chalk';
+import { IjsdbNotImplementedError } from './errors/ijsdb-not-implemented-error';
 
 export function setTrace(): void {
   const rl = readline.createInterface({
@@ -17,7 +18,39 @@ export function setTrace(): void {
 }
 
 function onLine(line: string): void {
-  console.log(`Got ${line}`);
+  if (isCommand(line)) {
+    throw new IjsdbNotImplementedError("Commands not implemented yet")
+  }
+
+  else {
+    console.log(evaluate(line));
+  }
+}
+
+function evaluate(expression: string, withStackTrace = false): unknown {
+  try {
+    return eval(expression);
+  }
+
+  catch(e) {
+    let output = `*** ${e.name}: ${e.message}`;
+
+    if (withStackTrace) {
+      // TODO: Stack trace is useless, we need to build virtual stack.
+      throw new IjsdbNotImplementedError("Stack trace is not implemented yet");
+      output = output.concat('\n', chalk.red(e.stack));
+    }
+
+    return output
+  }
+}
+
+function isCommand(line: string): boolean {
+  if (line) {
+    return false;
+  }
+  
+  return false;
 }
 
 /**
