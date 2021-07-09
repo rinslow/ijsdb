@@ -1,20 +1,11 @@
-export interface Argument {
-  name: string;
-  value: any;
-}
-
-export interface Call {
-  file: string;
-  line: number;
-  methodName: string;
-  arguments: Argument[];
-}
-
-export type CallStack = Call[];
+import { Call, CallStack } from './general';
+import { BaseCommand } from './commands/BaseCommand';
+import { NoCommand } from './commands/NoCommand';
 
 export class DebuggerState {
   private static CURRENT_LINE_IN_PEEKING = 0;
   private static CURRENT_FILE_IN_PEEKING = "/dev/null";
+  private static LATEST_COMMAND: BaseCommand = new NoCommand("");
 
   // First element in array is most recent call.
   private static CURRENT_CALL_STACK: CallStack = [];
@@ -49,5 +40,13 @@ export class DebuggerState {
 
   public static getCurrentCall(): Call {
     return this.getCurrentCallStack()[0];
+  }
+
+  public static getLatestCommand(): BaseCommand {
+    return this.LATEST_COMMAND;
+  }
+
+  public static setLatestCommand(command: BaseCommand) {
+    this.LATEST_COMMAND = command;
   }
 }

@@ -5,7 +5,20 @@ import * as chalk from 'chalk';
 
 import { IjsdbNotImplementedError } from './errors/ijsdb-not-implemented-error';
 import { ijsdbInternalError } from './errors/ijsdb-internal-error';
-import { Argument, Call, CallStack, DebuggerState } from './debugger-state';
+import { DebuggerState } from './debugger-state';
+import { Argument, Call, CallStack } from './general';
+import { getFunctionParameters, evalInScope } from './util';
+import { ListCommand } from './commands/ListCommand';
+import { RepeatCommand } from './commands/RepeatCommand';
+import { BaseCommand } from './commands/BaseCommand';
+
+const DEFAULT_CONTEXT = 1;
+
+const COMMANDS_HANDLER = {
+  'l': ListCommand,
+  'list': ListCommand,
+  '': RepeatCommand,
+};
 
 /**
  * entrypoint to the ijsdb
@@ -36,7 +49,7 @@ function loadStackToDebugger(): void {
   const frames = e.stack.split("\n").slice(3);
   const frameRegex = /at (?<methodName>.+?) \((?<filePath>.+?):(?<line>\d+?):(?<col>\d+?)\)/;
 
-  let caller = loadStackToDebugger.caller.caller.caller;
+  let caller = loadStackToDebugger.caller.caller;
 
   const callStack: CallStack = frames.map((frame, index) => {
     const groupsMatch = frame.match(frameRegex).groups;
@@ -48,14 +61,23 @@ function loadStackToDebugger(): void {
     let args: Argument[] = [];
 
     if (caller) {
-      args = Object.entries(caller.arguments).map((pair) => { return { name: pair[0], value: pair[1] }; });
+      const argumentNames = getFunctionParameters(caller);
+
+      args = Object.entries(caller.arguments).map((pair) => {
+        const argumentIndex = parseInt(pair[0]);
+
+        return { index: argumentIndex, value: pair[1], name: argumentNames[argumentIndex] };
+      });
+
       caller = caller.caller; // Advance to the next caller
     }
+
+    const file = groupsMatch["filePath"];
 
     const call: Call = {
       line: parseInt(groupsMatch["line"]),
       methodName: groupsMatch["methodName"],
-      file: groupsMatch["filePath"],
+      file: file,
       arguments: args,
     };
 
@@ -73,7 +95,6 @@ function loadStackToDebugger(): void {
 function onLine(line: string): void {
   if (isCommand(line)) {
     executeCommand(line);
-    throw new IjsdbNotImplementedError("Commands not implemented yet")
   }
 
   else {
@@ -86,7 +107,12 @@ function onLine(line: string): void {
  */
 function evaluate(expression: string, withStackTrace = false): unknown {
   try {
-    return eval(expression);
+    const currentCall: Call = DebuggerState.getCurrentCall();
+    // eslint-disable-next-line @typescript-eslint/ban-ts-comment
+    // @ts-ignore
+    const getArgumentsContext = Object.fromEntries(currentCall.arguments.map((arg) => [arg.name, arg.value]));
+
+    return evalInScope(expression, getArgumentsContext);
   }
 
   catch(e) {
@@ -106,18 +132,30 @@ function evaluate(expression: string, withStackTrace = false): unknown {
  * find out if a string is a command or an expression to be evaluated
  **/
 function isCommand(line: string): boolean {
-  if (line) {
-    return false;
+  if (line.length === 0) {
+    return true; // repeat command
   }
 
-  return false;
+  const firstWordInLine = line.split(/\s+/)[0];
+
+  return !!Object.keys(COMMANDS_HANDLER).includes(firstWordInLine);
 }
 
 /**
- * [NOT IMPLEMENTED] execute a debugger command
+ * execute a debugger command
  */
+// eslint-disable-next-line @typescript-eslint/no-empty-function
 function executeCommand(command: string) : void {
+  if (command.length === 0) {
+    new RepeatCommand("").execute();
+    return;
+  }
 
+  const firstWordInLine = command.split(/\s+/)[0];
+
+  const commandObject: BaseCommand = new COMMANDS_HANDLER[firstWordInLine](command);
+  commandObject.execute();
+  DebuggerState.setLatestCommand(commandObject);
 }
 
 /**
@@ -145,8 +183,8 @@ ${promptLine}\
  *  ----> 4     require('ijsdb').setTrace();
  *        5
  */
-function makeCurrentCallEntry(contextBefore = 1,
-                              contextAfter = 1,
+function makeCurrentCallEntry(contextBefore = DEFAULT_CONTEXT,
+                              contextAfter = DEFAULT_CONTEXT,
                               language = 'javascript'): string {
   return makeCallEntry(DebuggerState.getCurrentCall(), contextBefore, contextAfter, language);
 }
@@ -173,15 +211,18 @@ function makeCallEntry(call: Call,
   const methodName = call.methodName;
   const otherLines = linesOfCodeForCall(call, contextBefore, contextAfter);
   const codeLines = makeCodeLines(otherLines, contextBefore, language);
-  const callArguments = showCallArguments(call);
   const firstLine = `> ${chalk.greenBright(filePath)}(${lineNumber})${chalk.cyan(methodName)}${chalk.blue("()")}`;
-  const lines = [firstLine, callArguments, ...codeLines];
+  const lines = [firstLine, ...codeLines];
   return lines.join("\n");
 }
 
+/**
+ * return relevant lines of code to display in the peek window
+ */
 function linesOfCodeForCall(call: Call, contextBefore: number, contextAfter: number): string[] {
-  const lineToStartAt = Math.max(call.line - contextBefore - 1, 0);
-  const lineToEndAt = call.line + contextAfter;
+  const currentLineToPeek = DebuggerState.getCurrentLineInPeeking();
+  const lineToStartAt = Math.max(currentLineToPeek - contextBefore - 1, 0);
+  const lineToEndAt = currentLineToPeek + contextAfter;
   const fileContent = fs.readFileSync(call.file, {encoding:'utf8', flag:'r'});
   return fileContent.split(/\r?\n/).slice(lineToStartAt, lineToEndAt);
 }
@@ -193,7 +234,16 @@ function linesOfCodeForCall(call: Call, contextBefore: number, contextAfter: num
 function showCallArguments(call: Call): string {
   const separator = "-".repeat(35);
   const argumentsContent = call.arguments.map((argument) => {
-    return `${argument.name}: ${argument.value}`;
+
+    let value;
+    try {
+      value = JSON.stringify(argument.value);
+    }
+    catch (TypeError) {
+      value = argument.value;
+    }
+
+    return `${argument.name}: ${value}`;
   });
 
   return [separator, "Variables:", ...argumentsContent, separator].join("\n");
@@ -233,3 +283,4 @@ function highlightSyntax(line: string, language = 'javascript'): string {
   // TODO: Syntax highlighting
  return line;
 }
+
