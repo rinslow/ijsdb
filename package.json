@@ -1,12 +1,12 @@
 {
-  "name": "node-library-template",
+  "name": "ijsdb",
   "version": "0.0.1",
-  "description": "node-library-template",
+  "description": "ijsdb",
   "author": "Chao Yang <chao@yang.to>",
   "license": "MIT",
   "repository": {
     "type": "git",
-    "url": "https://github.com/chaoyangnz/node-library-template"
+    "url": "https://github.com/rinslow/ijsdb"
   },
   "main": "lib/index.js",
   "types": "lib/index.d.ts",
@@ -22,7 +22,7 @@
     "prerelease": "npm run build",
     "release": "npm login && bump --tag && npm publish",
     "postrelease": "git push && git push --tags",
-    "postinstall": "ts-node tools/rename.ts"
+    "postinstall": ""
   },
   "publishConfig": {
     "access": "public"
