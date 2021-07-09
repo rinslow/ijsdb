@@ -1,8 +1,11 @@
+import * as fs from 'fs';
+
 import * as readline from 'readline';
 import * as chalk from 'chalk';
 
 import { IjsdbNotImplementedError } from './errors/ijsdb-not-implemented-error';
-import { Call, DebuggerState } from './debugger-state';
+import { ijsdbInternalError } from './errors/ijsdb-internal-error';
+import { Argument, Call, CallStack, DebuggerState } from './debugger-state';
 
 /**
  * entrypoint to the ijsdb
@@ -19,8 +22,49 @@ export function setTrace(): void {
     rl.prompt()
   });
 
+  loadStackToDebugger()
   rl.setPrompt(makePrompt());
   rl.prompt()
+}
+
+
+/**
+ * Loads the current stack to the debugger state.
+ */
+function loadStackToDebugger(): void {
+  const e = new Error();
+  const frames = e.stack.split("\n").slice(3);
+  const frameRegex = /at (?<methodName>.+?) \((?<filePath>.+?):(?<line>\d+?):(?<col>\d+?)\)/;
+
+  let caller = loadStackToDebugger.caller.caller.caller;
+
+  const callStack: CallStack = frames.map((frame, index) => {
+    const groupsMatch = frame.match(frameRegex).groups;
+
+    if (!groupsMatch) {
+      throw new ijsdbInternalError(`Could not parse frame ${index}`)
+    }
+
+    let args: Argument[] = [];
+
+    if (caller) {
+      args = Object.entries(caller.arguments).map((pair) => { return { name: pair[0], value: pair[1] }; });
+      caller = caller.caller; // Advance to the next caller
+    }
+
+    const call: Call = {
+      line: parseInt(groupsMatch["line"]),
+      methodName: groupsMatch["methodName"],
+      file: groupsMatch["filePath"],
+      arguments: args,
+    };
+
+    return call;
+  });
+
+  DebuggerState.setCurrentCallStack(callStack);
+  DebuggerState.setCurrentFileInPeeking(callStack[0].file);
+  DebuggerState.setCurrentLineInPeeking(callStack[0].line);
 }
 
 /**
@@ -126,12 +170,33 @@ function makeCallEntry(call: Call,
                        language='javascript'): string {
   const filePath = call.file;
   const lineNumber = call.line;
-  const methodName = "methodName";
-  const otherLines = ["    const b = 4;", "    require('ijsdb').setTrace();", "    "];
+  const methodName = call.methodName;
+  const otherLines = linesOfCodeForCall(call, contextBefore, contextAfter);
   const codeLines = makeCodeLines(otherLines, contextBefore, language);
+  const callArguments = showCallArguments(call);
   const firstLine = `> ${chalk.greenBright(filePath)}(${lineNumber})${chalk.cyan(methodName)}${chalk.blue("()")}`;
-  const lines = [firstLine, ...codeLines];
+  const lines = [firstLine, callArguments, ...codeLines];
   return lines.join("\n");
+}
+
+function linesOfCodeForCall(call: Call, contextBefore: number, contextAfter: number): string[] {
+  const lineToStartAt = Math.max(call.line - contextBefore - 1, 0);
+  const lineToEndAt = call.line + contextAfter;
+  const fileContent = fs.readFileSync(call.file, {encoding:'utf8', flag:'r'});
+  return fileContent.split(/\r?\n/).slice(lineToStartAt, lineToEndAt);
+}
+
+/**
+ * print the call args
+ * i added this method for debugging the debugger but it might be useful as a feature
+ */
+function showCallArguments(call: Call): string {
+  const separator = "-".repeat(35);
+  const argumentsContent = call.arguments.map((argument) => {
+    return `${argument.name}: ${argument.value}`;
+  });
+
+  return [separator, "Variables:", ...argumentsContent, separator].join("\n");
 }
 
 /**

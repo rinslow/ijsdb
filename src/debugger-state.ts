@@ -1,16 +1,23 @@
+export interface Argument {
+  name: string;
+  value: any;
+}
+
 export interface Call {
   file: string;
   line: number;
+  methodName: string;
+  arguments: Argument[];
 }
 
 export type CallStack = Call[];
 
 export class DebuggerState {
-  private static CURRENT_LINE_IN_PEEKING = 3;
+  private static CURRENT_LINE_IN_PEEKING = 0;
   private static CURRENT_FILE_IN_PEEKING = "/dev/null";
 
   // First element in array is most recent call.
-  private static CURRENT_CALL_STACK: CallStack = [{ file: "/dev/null", line: 4 }];
+  private static CURRENT_CALL_STACK: CallStack = [];
 
   public static getCurrentLineInPeeking(): number {
     return this.CURRENT_LINE_IN_PEEKING;
@@ -37,7 +44,7 @@ export class DebuggerState {
   }
 
   public static isInCallStack(file: string, line: number): boolean {
-    return this.getCurrentCallStack().includes({ file, line });
+    return this.getCurrentCallStack().some((call) => call.line === line && call.file === file);
   }
 
   public static getCurrentCall(): Call {
