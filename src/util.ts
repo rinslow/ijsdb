@@ -44,6 +44,14 @@ export function evalInScope(js: string, contextAsScope: object) {
 /**
  * Read the content of a file
  */
-export function getFileContent(file: string) {
+export function getFileContent(file: string): string {
   return fs.readFileSync(file, { encoding: 'utf8', flag: 'r' });
+}
+
+/**
+ * test if a file exists
+ * code taken from https://attacomsian.com/blog/how-to-check-if-a-file-exists-in-nodejs
+ */
+export function doesFileExist(filepath: string) : boolean {
+  return fs.existsSync(filepath);
 }

@@ -5,13 +5,15 @@ import { IjsdbNotImplementedError } from './errors/ijsdb-not-implemented-error';
 import { ijsdbInternalError } from './errors/ijsdb-internal-error';
 import { DebuggerState } from './debugger-state';
 import { Argument, Call, CallStack } from './general';
-import { evalInScope, getFileContent, getFunctionParameters } from './util';
+import { evalInScope, getFunctionParameters } from './util';
 import { ListCommand } from './commands/ListCommand';
 import { RepeatCommand } from './commands/RepeatCommand';
 import { BaseCommand } from './commands/BaseCommand';
 import { UpCommand } from './commands/UpCommand';
 import { DownCommand } from './commands/DownCommand';
 import { ArgsCommand } from './commands/ArgsCommand';
+import { makeCallEntry } from './printers/entry';
+import { WhereCommand } from './commands/WhereCommand';
 
 const DEFAULT_CONTEXT = 1;
 
@@ -25,6 +27,8 @@ const COMMANDS_HANDLER = {
   'd': DownCommand,
   'a': ArgsCommand,
   'args': ArgsCommand,
+  'w': WhereCommand,
+  'where': WhereCommand
 };
 
 /**
@@ -161,8 +165,12 @@ function executeCommand(command: string) : void {
   const firstWordInLine = command.split(/\s+/)[0];
 
   const commandObject: BaseCommand = new COMMANDS_HANDLER[firstWordInLine](command);
-  commandObject.execute();
-  DebuggerState.setLatestCommand(commandObject);
+  try {
+    commandObject.execute();
+    DebuggerState.setLatestCommand(commandObject);
+  } catch (error) {
+    console.error(`*** ${commandObject.constructor.name}: ${error.message}`);
+  }
 }
 
 /**
@@ -194,78 +202,5 @@ function makeCurrentCallEntry(contextBefore = DEFAULT_CONTEXT,
                               contextAfter = DEFAULT_CONTEXT,
                               language = 'javascript'): string {
   return makeCallEntry(DebuggerState.getCurrentCall(), contextBefore, contextAfter, language);
-}
-
-/**
- * generate a call entry
- * @param call (Call): the call object to generate for.
- * @param contextBefore (integer): how many preceding lines-of-code to show.
- * @param contextAfter (integer): how many succeeding lines-of-code to show.
- * @param language (string): what language to use.
- *    (available languages here: https://github.com/highlightjs/highlight.js/blob/main/SUPPORTED_LANGUAGES.md)
- * @example
- * > /Users/root/tmp/module.js(4)bla()
- *        3     const b = 4;
- *  ----> 4     require('ijsdb').setTrace();
- *        5
- */
-function makeCallEntry(call: Call,
-                       contextBefore = 1,
-                       contextAfter = 1,
-                       language='javascript'): string {
-  const filePath = call.file;
-  const lineNumber = call.line;
-  const methodName = call.methodName;
-  const otherLines = linesOfCodeForCall(call, contextBefore, contextAfter);
-  const codeLines = makeCodeLines(otherLines, contextBefore, language);
-  const firstLine = `> ${chalk.greenBright(filePath)}(${lineNumber})${chalk.cyan(methodName)}${chalk.blue("()")}`;
-  const lines = [firstLine, ...codeLines];
-  return lines.join("\n");
-}
-
-/**
- * return relevant lines of code to display in the peek window
- */
-function linesOfCodeForCall(call: Call, contextBefore: number, contextAfter: number): string[] {
-  const currentLineToPeek = DebuggerState.getCurrentLineInPeeking();
-  const lineToStartAt = Math.max(currentLineToPeek - contextBefore - 1, 0);
-  const lineToEndAt = currentLineToPeek + contextAfter;
-  const fileContent = getFileContent(call.file);
-  return fileContent.split(/\r?\n/).slice(lineToStartAt, lineToEndAt);
-}
-
-/**
- * syntax-highlight lines of code, order them, and denote current line.
- * @param lines (string[]): lines of code to highlight.
- * @param contextBefore (number): how many preceding lines-of-code are shown.
- * @param language (string): what language to use.
- *    (available languages here: https://github.com/highlightjs/highlight.js/blob/main/SUPPORTED_LANGUAGES.md)
- * @example
- *        3     const b = 4;
- *  ----> 4     require('ijsdb').setTrace();
- *        5
- */
-function makeCodeLines(lines: string[],
-                       contextBefore: number,
-                       language = 'javascript'): string[] {
-  const currentLineInPeeking = DebuggerState.getCurrentLineInPeeking();
-  const currentFileInPeeking = DebuggerState.getCurrentFileInPeeking();
-
-  const firstLineNumber = currentLineInPeeking - contextBefore;
-  return lines.map((line, index) => {
-    const lineIndex = firstLineNumber + index;
-    const syntaxHighlightedLine = highlightSyntax(line, language);
-    const isLineBeingExecuted = DebuggerState.isInCallStack(currentFileInPeeking, lineIndex);
-    const linePrefix = isLineBeingExecuted ? " ---->" : "      ";
-    return `${chalk.greenBright(linePrefix)} ${chalk.greenBright(lineIndex)} ${syntaxHighlightedLine}`
-  });
-}
-
-/**
- * [NOT IMPLEMENTED] highlight a line in the syntax of a language with BASH colors.
- */
-function highlightSyntax(line: string, language = 'javascript'): string {
-  // TODO: Syntax highlighting
- return line;
 }
 

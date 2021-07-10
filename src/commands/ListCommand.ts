@@ -19,7 +19,7 @@ export class ListCommand implements BaseCommand {
     }
 
     if (argc > 2) {
-      throw  new ijsdbListCommandError(`either use 'l' or 'list' with no arguments (advances by ${ListCommand.ADVANCE_BY}) or give a specific line number as an argument.`)
+      throw  new ijsdbListCommandError(`use either with no args (advances by ${ListCommand.ADVANCE_BY}) or give a specific line number as an argument.`)
     }
 
     let nextLine: number;
