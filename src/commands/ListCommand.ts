@@ -38,4 +38,8 @@ export class ListCommand implements BaseCommand {
 
     DebuggerState.setCurrentLineInPeeking(nextLine)
   }
+
+  public documentation(): string {
+    return `Print lines of code from the current stack frame`;
+  }
 }

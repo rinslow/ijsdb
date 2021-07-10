@@ -19,4 +19,8 @@ export class RepeatCommand implements BaseCommand {
 
     DebuggerState.getLatestCommand().execute();
   }
+
+  public documentation(): string {
+    return 'Repeat the last command';
+  }
 }

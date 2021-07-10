@@ -16,6 +16,7 @@ export class UpCommand implements BaseCommand {
     const argc = argv.length;
 
     if (argc != 1) {
+      // TODO: Support count frames up.
       throw  new ijsdbUpCommandError("Must have no args")
     }
 
@@ -38,5 +39,13 @@ export class UpCommand implements BaseCommand {
       console.log("*** Oldest frame");
       new DownCommand("").execute();
     }
+  }
+
+  public documentation(): string {
+    return `u(p) [count]
+        Move the current frame count (default one) levels up in the
+        stack trace (to an older frame).
+
+        Will skip hidden frames.`;
   }
 }

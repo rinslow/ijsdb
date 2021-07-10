@@ -6,30 +6,10 @@ import { ijsdbInternalError } from './errors/ijsdb-internal-error';
 import { DebuggerState } from './debugger-state';
 import { Argument, Call, CallStack } from './general';
 import { evalInScope, getFunctionParameters } from './util';
-import { ListCommand } from './commands/ListCommand';
-import { RepeatCommand } from './commands/RepeatCommand';
-import { BaseCommand } from './commands/BaseCommand';
-import { UpCommand } from './commands/UpCommand';
-import { DownCommand } from './commands/DownCommand';
-import { ArgsCommand } from './commands/ArgsCommand';
 import { makeCallEntry } from './printers/entry';
-import { WhereCommand } from './commands/WhereCommand';
+import { executeCommand, isCommand } from './commands';
 
 const DEFAULT_CONTEXT = 1;
-
-const COMMANDS_HANDLER = {
-  '': RepeatCommand,
-  'l': ListCommand,
-  'list': ListCommand,
-  'up': UpCommand,
-  'u': UpCommand,
-  'down': DownCommand,
-  'd': DownCommand,
-  'a': ArgsCommand,
-  'args': ArgsCommand,
-  'w': WhereCommand,
-  'where': WhereCommand
-};
 
 /**
  * entrypoint to the ijsdb
@@ -136,40 +116,6 @@ function evaluate(expression: string, withStackTrace = false): unknown {
     }
 
     return output
-  }
-}
-
-/**
- * find out if a string is a command or an expression to be evaluated
- **/
-function isCommand(line: string): boolean {
-  if (line.length === 0) {
-    return true; // repeat command
-  }
-
-  const firstWordInLine = line.split(/\s+/)[0];
-
-  return !!Object.keys(COMMANDS_HANDLER).includes(firstWordInLine);
-}
-
-/**
- * execute a debugger command
- */
-// eslint-disable-next-line @typescript-eslint/no-empty-function
-function executeCommand(command: string) : void {
-  if (command.length === 0) {
-    new RepeatCommand("").execute();
-    return;
-  }
-
-  const firstWordInLine = command.split(/\s+/)[0];
-
-  const commandObject: BaseCommand = new COMMANDS_HANDLER[firstWordInLine](command);
-  try {
-    commandObject.execute();
-    DebuggerState.setLatestCommand(commandObject);
-  } catch (error) {
-    console.error(`*** ${commandObject.constructor.name}: ${error.message}`);
   }
 }
 

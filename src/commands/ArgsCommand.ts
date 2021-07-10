@@ -43,4 +43,9 @@ export class ArgsCommand implements BaseCommand {
 
     console.log([separator, "Args:", ...argumentsContent, separator].join("\n"));
   }
+
+  public documentation(): string {
+    return `a(rgs)
+        Print the argument list of the current function.`;
+  }
 }

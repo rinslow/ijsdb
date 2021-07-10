@@ -14,6 +14,7 @@ export class DownCommand implements BaseCommand {
     const argc = argv.length;
 
     if (argc != 1) {
+      // TODO: Support count frames up.
       throw  new ijsdbDownCommandError("Must have no args")
     }
 
@@ -27,5 +28,13 @@ export class DownCommand implements BaseCommand {
     DebuggerState.setCurrentCallStackPointer(currentCallStackPointer - 1);
     DebuggerState.setCurrentLineInPeeking(DebuggerState.getCurrentCall().line);
     DebuggerState.setCurrentFileInPeeking(DebuggerState.getCurrentCall().file);
+  }
+
+  public documentation(): string {
+    return `d(own) [count]
+        Move the current frame count (default one) levels down in the
+        stack trace (to a newer frame).
+
+        Will skip hidden frames.`;
   }
 }

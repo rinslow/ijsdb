@@ -16,6 +16,7 @@ export class WhereCommand implements BaseCommand {
     const argc = argv.length;
 
     if (argc != 1) {
+      // TODO: Support argument context.
       throw  new ijsdbWhereCommandError("Must have no args")
     }
 
@@ -29,5 +30,15 @@ export class WhereCommand implements BaseCommand {
     }
 
     console.log(outputLines.join("\n"))
+  }
+
+  public documentation(): string {
+    return `w(here)
+        Print a stack trace, with the most recent frame at the bottom.
+        An arrow indicates the "current frame", which determines the
+        context of most commands.
+
+        Take a number as argument as an (optional) number of context line to
+        print`;
   }
 }

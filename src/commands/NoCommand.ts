@@ -11,4 +11,8 @@ export class NoCommand implements BaseCommand {
   public execute(): void {
 
   }
+
+  documentation(): string {
+    return '';
+  }
 }
