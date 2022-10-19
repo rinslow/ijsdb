@@ -36,9 +36,13 @@ export function getFunctionParameters(func): string[] {
 export function evalInScope(js: string, contextAsScope: object) {
   //# Return the results of the in-line anonymous function we .call with the passed context
   // eslint-disable-next-line @typescript-eslint/ban-ts-comment
-  return function() { // @ts-ignore
+  return function () { // @ts-ignore
     // eslint-disable-next-line no-with
-    with(this) { return eval(js); }; }.call(contextAsScope);
+    with (this) {
+      return eval(js);
+    }
+    ;
+  }.call(contextAsScope);
 }
 
 /**
@@ -52,6 +56,17 @@ export function getFileContent(file: string): string {
  * test if a file exists
  * code taken from https://attacomsian.com/blog/how-to-check-if-a-file-exists-in-nodejs
  */
-export function doesFileExist(filepath: string) : boolean {
+export function doesFileExist(filepath: string): boolean {
   return fs.existsSync(filepath);
+}
+
+/**
+ * Test if is strict mode, in which debugger won't work.
+ * code taken from https://stackoverflow.com/a/62736775/9680793
+ */
+export function isStrictMode(): boolean {
+  // eslint-disable-next-line no-var
+  var isStrict = true;
+  eval('var isStrict = false');
+  return isStrict;
 }

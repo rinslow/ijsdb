@@ -5,7 +5,7 @@ import { IjsdbNotImplementedError } from './errors/ijsdb-not-implemented-error';
 import { ijsdbInternalError } from './errors/ijsdb-internal-error';
 import { DebuggerState } from './debugger-state';
 import { Argument, Call, CallStack } from './general';
-import { evalInScope, getFunctionParameters } from './util';
+import { evalInScope, getFunctionParameters, isStrictMode } from './util';
 import { makeCallEntry } from './printers/entry';
 import { executeCommand, isCommand } from './commands';
 
@@ -15,6 +15,10 @@ const DEFAULT_CONTEXT = 1;
  * entrypoint to the ijsdb
  */
 export function setTrace(): void {
+  if (isStrictMode) {
+    throw new Error('Debugger does not work in JavaScript strict mode');
+  }
+
   const rl = readline.createInterface({
     input: process.stdin,
     output: process.stdout,
@@ -37,7 +41,7 @@ export function setTrace(): void {
  */
 function loadStackToDebugger(): void {
   const e = new Error();
-  const frames = e.stack.split("\n").slice(3);
+  const frames = e.stack.split('\n').slice(3);
   const frameRegex = /at (?<methodName>.+?) \((?<filePath>.+?):(?<line>\d+?):(?<col>\d+?)\)/;
 
   let caller = loadStackToDebugger.caller.caller;
@@ -63,11 +67,11 @@ function loadStackToDebugger(): void {
       caller = caller.caller; // Advance to the next caller
     }
 
-    const file = groupsMatch["filePath"];
+    const file = groupsMatch['filePath'];
 
     const call: Call = {
-      line: parseInt(groupsMatch["line"]),
-      methodName: groupsMatch["methodName"],
+      line: parseInt(groupsMatch['line']),
+      methodName: groupsMatch['methodName'],
       file: file,
       arguments: args,
     };
@@ -86,9 +90,7 @@ function loadStackToDebugger(): void {
 function onLine(line: string): void {
   if (isCommand(line)) {
     executeCommand(line);
-  }
-
-  else {
+  } else {
     console.log(evaluate(line));
   }
 }
@@ -104,14 +106,12 @@ function evaluate(expression: string, withStackTrace = false): unknown {
     const getArgumentsContext = Object.fromEntries(currentCall.arguments.map((arg) => [arg.name, arg.value]));
 
     return evalInScope(expression, getArgumentsContext);
-  }
-
-  catch(e) {
+  } catch (e) {
     let output = `*** ${e.name}: ${e.message}`;
 
     if (withStackTrace) {
       // TODO: Stack trace is useless, we need to build virtual stack.
-      throw new IjsdbNotImplementedError("Stack trace is not implemented yet");
+      throw new IjsdbNotImplementedError('Stack trace is not implemented yet');
       output = output.concat('\n', chalk.red(e.stack));
     }
 
